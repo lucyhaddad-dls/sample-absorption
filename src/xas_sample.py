@@ -14,16 +14,26 @@ units = pint.UnitRegistry(system='mks')
 
 units.default_system
 
-units.define("eV = [energy] = EV = ev")
-units.define("GeV = 1e3 eV = GEV = gev")
-
-# make a Measurement subclass that is dependent on a parent's
-# value?
+units.define("eV = [energy] = EV = ev = electronvolt")
+units.define("GeV = 1e3 eV = GEV = gev = gigaelectronvolt")
+units.define("MeV = 1e6 eV = MEV = mev = megaelectronvolt")
 
 @dataclass
 class Measurement:
+    """
+    A measurement has an attribute `value` and property\
+    `unit`. \\
+    
+    Example:
+        ```
+        velocity = Measurement(value = [0, 1, 2], 
+                            _unit = units.m / units.s**2)
+
+        velocity.to(units.cm / units.s**2)
+        ```
+    """
     value: int | float | np.ndarray | None
-    _unit: Unit
+    _unit: Unit | str
 
     @property
     def unit(self)->None:
@@ -47,8 +57,10 @@ class Measurement:
         if isinstance(unit, Unit):
             unit = str(unit)
 
-        new = (self.value * self.unit).to(unit)
-        self.value = new._magnitude
+        if self.value is not None:
+            val = self.value * self.unit
+            new = val.to(unit)
+            self.value = new._magnitude
         self.unit = getattr(units, unit)
 
     def __mul__(self, other):
@@ -103,11 +115,10 @@ class XRaySample:
                 volume:float|int|None = None,
                 thickness:float|int|None = None,
                 mu_total:float|int|None = 2.6,
-                mass_unit:Unit|str|None = None,
-                length_unit:Unit|str|None = None):
+                mass_unit:Unit|str = "g",
+                length_unit:Unit|str = "cm"):
         """
-        Assumed units are: mass [g], length [cm], energy [GeV]. To change unit:
-        `sample.thickness.unit = "mm"`
+         to add energy unit formally..
         """
 
         self.formula = formula
@@ -119,26 +130,21 @@ class XRaySample:
             self._mass_unit = mass_unit
         elif isinstance(mass_unit, str):
             self._mass_unit = getattr(units, mass_unit)
-        else:
-            self._mass_unit = units.g
-
+            
         if isinstance(length_unit, Unit):
             self._length_unit = length_unit
         elif isinstance(length_unit, str):
             self._length_unit = getattr(units, length_unit)
-        else:
-            self._length_unit = units.cm
-        
-        # probs. want to make these properties.... because if one unit changes !
-        # all other units are based on these two.
-        self.mass = Measurement(value = mass, _unit=self.mass_unit)
-        self.thickness = Measurement(value = thickness, _unit = self.length_unit)
-        self.volume = Measurement(value = volume, _unit = self.length_unit**3)
-        self.density = Measurement(value = density, _unit = self.mass_unit/self.length_unit**3)
-        self.area = Measurement(value = area, _unit = self.length_unit**2)
-        self.surface_density = Measurement(value = surface_density, _unit = self.mass_unit/self.length_unit**2)
-        
 
+        
+        self.thickness = Measurement(value = thickness, _unit = self.length_unit)
+        self.area = Measurement(value = area, _unit = self.length_unit**2)
+        self.volume = Measurement(value = volume, _unit = self.length_unit**3)
+
+        self.mass = Measurement(value = mass, _unit=self.mass_unit)
+        self.surface_density = Measurement(value = surface_density, _unit = self.mass_unit/self.length_unit**2)
+        self.density = Measurement(value = density, _unit = self.mass_unit/self.length_unit**3)
+        
         if self.absorber != None and self.edge != None:
             out = CS_Photo_Formula(self.formula,
                                    self.absorber,
@@ -165,7 +171,6 @@ class XRaySample:
             self._mass_unit = getattr(units, val)
         else:
             self._mass_unit = val
-
         # convert all mass-dependent values:
         self.mass.to(self.mass_unit)
         self.density.to(self.mass_unit/self.length_unit**3)
@@ -192,7 +197,6 @@ class XRaySample:
         self.surface_density.to(self.mass_unit/self.length_unit**2)
     
         return self._length_unit
-
 
     def calculate_step(self):
         if isinstance(self.edge_energy.value, (int, float)):
