@@ -9,7 +9,8 @@ from .formulas import _edges
 def CS_Photo_Formula(formula:str,
                      absorber:str=None,
                      edge:str=None,
-                     energy:float|int|np.ndarray=None):
+                     energy:float|int|np.ndarray=None)\
+                    ->tuple[dict, np.ndarray, np.ndarray]:
     """
     Get mass absorption coefficient [cm^2.g^-1] for a given formula. \
     To convert to an x-ray attenuation length [cm^-1], this needs to be multiplied
@@ -26,16 +27,18 @@ def CS_Photo_Formula(formula:str,
               (if absorber and edge not provided).
 
     Returns:
-        photo_dict (dict): Dictionary of key-value pairs for:
-            energy (np.ndarray): Energy [GeV].
-            mu_m (np.ndarray): Mass absorption coefficient [cm^2.g^-1].
+        tuple (tuple[dict, np.ndarray, np.ndarray]): tuple containing:
 
+        photo_dict (dict): Dictionary of key-value pairs for:
             element (str): Nested dictionary for element i of key-value pairs for:
                 Z (int): Atomic number.
                 A (float): Atomic weight.
                 N: Number of elements of type Z.
                 massFraction: N/total mass.
                 mu_m: Mass absorption coefficient for type Z.
+        energy (np.ndarray): Energy [GeV].
+        mu_m (np.ndarray): Mass absorption coefficient [cm^2.g^-1].
+        
 
     Note:
         Currently if (absorber, edge) or single energy value is provided,\
@@ -45,6 +48,7 @@ def CS_Photo_Formula(formula:str,
     """
 
     unit = "GeV"
+    # update this to work with Measurement objects?
 
     compound = CompoundParser(formula)
     if edge is not None:
@@ -88,9 +92,7 @@ def CS_Photo_Formula(formula:str,
                                                 "mu_m": mu_m_tmp
                                                 }
         mu_m += mu_m_tmp
-    
-    photo_dict["energy"] = energy
-    photo_dict["mu_m"] = mu_m
+    # change mu_m and energy to be Measurements?
 
-    return photo_dict
+    return photo_dict, energy, mu_m
 

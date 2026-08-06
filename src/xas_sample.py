@@ -102,6 +102,76 @@ class Measurement:
 # do i want to make two objects with different logic for (possibly) multiple-edges and
 # single edges?
 
+
+#base class with mass unit, length unit and photoabsorption ?
+
+class PhotoElement:
+    def __init__(self,
+                 name:str,
+                 Z:int,
+                 A:int|float,
+                 N:int,
+                 massFraction:float,
+                 mu_m:np.ndarray,
+                 mass_unit:str|Unit,
+                 length_unit:str|Unit
+                 ):
+        """
+        read input from CS_Photo_Formula and make 
+        it easier to query per-atom information..?
+        """
+    
+        # properties
+        if isinstance(mass_unit, Unit):
+            self._mass_unit = mass_unit
+        elif isinstance(mass_unit, str):
+            self._mass_unit = getattr(units, mass_unit)
+
+        if isinstance(length_unit, Unit):
+            self._length_unit = length_unit
+        elif isinstance(length_unit, str):
+            self._length_unit = getattr(units, length_unit)
+
+        # measurements
+        self.mass_absorption = Measurement(value = mu_m,
+                                                _unit = units.cm**2/units.g)
+        if self.mass_absorption.unit != self.length_unit**2 / self.mass_unit:
+                    self.mass_absorption.to(self.length_unit**2 / self.mass_unit)
+
+        # attributes
+        self.name = name
+        self.Z = Z
+        self.A = A
+        self.N = N
+        self.massFraction = massFraction
+
+    @property
+    def length_unit(self):
+        return self._length_unit
+
+    @length_unit.setter
+    def length_unit(self, val:str|Unit):
+        if isinstance(val, str):
+            self._length_unit = getattr(units, val)
+        else:
+            self._length_unit = val
+        self.mass_absorption.to(self.length_unit**2/self.mass_unit)
+        return self._length_unit
+
+    @property
+    def mass_unit(self):
+        return self._mass_unit
+
+    @mass_unit.setter
+    def mass_unit(self, val:str|Unit):
+        if isinstance(val, str):
+            self._mass_unit = getattr(units, val)
+        else:
+            self._mass_unit = val
+        self.mass_absorption.to(self.length_unit**2/self.mass_unit)
+        return self._mass_unit
+
+        
 class XRaySample:
     def __init__(self,
                 formula:str,
@@ -118,9 +188,7 @@ class XRaySample:
                 length_unit:Unit|str = "cm",
                 energy_unit:Unit|str = "gev"):
         """
-         to add energy unit formally..
         """
-
         self.formula = formula
         self.absorber = absorber
         self.edge = edge
@@ -151,9 +219,11 @@ class XRaySample:
         self.density = Measurement(value = density, _unit = self.mass_unit/self.length_unit**3)
         
         if self.absorber != None and self.edge != None:
-            out = CS_Photo_Formula(self.formula,
+            self.elements = []
+            atoms_dict, energy, mass_absorption = CS_Photo_Formula(self.formula,
                                    self.absorber,
                                    self.edge)
+            
 
             edge_energy = EdgeEnergy(SymbolToAtomicNumber(self.absorber),
                                      _edges.index(self.edge.upper()))
@@ -161,17 +231,23 @@ class XRaySample:
 
             if self.edge_energy.unit != self.energy_unit:
                 self.edge_energy.to(self.energy_unit)
-            
+
+            for element, values in atoms_dict.items():
+                self.elements.append(PhotoElement(
+                                                  name = element,
+                                                  **values,
+                                                  mass_unit= self.mass_unit,
+                                                  length_unit=self.length_unit))
         else:
             raise NotImplementedError("Energy values leading to (possibly)\
                                       multiple edges not yet implemented.")
 
-        self.energy = Measurement(value=out["energy"], 
+        self.energy = Measurement(value=energy, 
                                             _unit = units.gev)
         if self.energy.unit != self.energy_unit:
             self.energy.to(self.energy_unit)
 
-        self.mass_absorption = Measurement(value = out["mu_m"], 
+        self.mass_absorption = Measurement(value = mass_absorption, 
                                            _unit = units.cm**2/units.g)
         if self.mass_absorption.unit != self.length_unit**2 / self.mass_unit:
             self.mass_absorption.to(self.length_unit**2 / self.mass_unit)
@@ -226,7 +302,6 @@ class XRaySample:
         else:
             self._energy_unit = getattr(units, val)
 
-        # CONVERT ALL ENERGY VALUES BELOW
         self.edge_energy.to(self.energy_unit)
         self.energy.to(self.energy_unit)
         
