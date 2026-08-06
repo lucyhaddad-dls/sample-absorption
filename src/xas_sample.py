@@ -4,19 +4,14 @@ from xraylib import EdgeEnergy, SymbolToAtomicNumber
 from dataclasses import dataclass
 import numpy as np
 from .formulas import _edges
-from .edge_step import get_edge_vals, get_bounds, fit_bkg
+from .edge_step import get_bounds, fit_bkg
+from pint import Unit, UnitRegistry
 
-# make units for everything:
-from pint import UnitRegistry, Unit
-
-import pint
-units = pint.UnitRegistry(system='mks')
-
-units.default_system
+units = UnitRegistry(system='mks')
 
 units.define("eV = [energy] = EV = ev = electronvolt")
 units.define("GeV = 1e3 eV = GEV = gev = gigaelectronvolt")
-units.define("MeV = 1e6 eV = MEV = mev = megaelectronvolt")
+
 
 @dataclass
 class Measurement:
@@ -102,7 +97,11 @@ class Measurement:
     def __pow__(self, exp):
         return Measurement(value= self.value**exp, 
                            unit = self.unit**exp)
-    
+
+
+# do i want to make two objects with different logic for (possibly) multiple-edges and
+# single edges?
+
 class XRaySample:
     def __init__(self,
                 formula:str,
@@ -116,7 +115,8 @@ class XRaySample:
                 thickness:float|int|None = None,
                 mu_total:float|int|None = 2.6,
                 mass_unit:Unit|str = "g",
-                length_unit:Unit|str = "cm"):
+                length_unit:Unit|str = "cm",
+                energy_unit:Unit|str = "gev"):
         """
          to add energy unit formally..
         """
@@ -130,11 +130,16 @@ class XRaySample:
             self._mass_unit = mass_unit
         elif isinstance(mass_unit, str):
             self._mass_unit = getattr(units, mass_unit)
-            
+
         if isinstance(length_unit, Unit):
             self._length_unit = length_unit
         elif isinstance(length_unit, str):
             self._length_unit = getattr(units, length_unit)
+
+        if isinstance(energy_unit, Unit):
+            self._energy_unit = energy_unit
+        elif isinstance(energy_unit, str):
+            self._energy_unit = getattr(units, energy_unit)
 
         
         self.thickness = Measurement(value = thickness, _unit = self.length_unit)
@@ -149,17 +154,27 @@ class XRaySample:
             out = CS_Photo_Formula(self.formula,
                                    self.absorber,
                                    self.edge)
-            self.edge_energy = Measurement(value= EdgeEnergy(SymbolToAtomicNumber(self.absorber),
-                                          _edges.index(self.edge.upper())),
-                                          _unit = units.GEV)
+
+            edge_energy = EdgeEnergy(SymbolToAtomicNumber(self.absorber),
+                                     _edges.index(self.edge.upper()))
+            self.edge_energy = Measurement(value=edge_energy, _unit= units.gev)
+
+            if self.edge_energy.unit != self.energy_unit:
+                self.edge_energy.to(self.energy_unit)
+            
         else:
             raise NotImplementedError("Energy values leading to (possibly)\
                                       multiple edges not yet implemented.")
 
-        self.energy = Measurement(value=out["energy"], _unit=units.GEV)
+        self.energy = Measurement(value=out["energy"], 
+                                            _unit = units.gev)
+        if self.energy.unit != self.energy_unit:
+            self.energy.to(self.energy_unit)
 
-
-        self.mass_absorption = Measurement(value=out["mu_m"], _unit=units.cm**2/units.g)
+        self.mass_absorption = Measurement(value = out["mu_m"], 
+                                           _unit = units.cm**2/units.g)
+        if self.mass_absorption.unit != self.length_unit**2 / self.mass_unit:
+            self.mass_absorption.to(self.length_unit**2 / self.mass_unit)
 
     @property
     def mass_unit(self):
@@ -175,6 +190,7 @@ class XRaySample:
         self.mass.to(self.mass_unit)
         self.density.to(self.mass_unit/self.length_unit**3)
         self.surface_density.to(self.mass_unit/self.length_unit**2)
+        self.mass_absorption.to(self.length_unit**2 / self.mass_unit)
 
         return self._mass_unit
 
@@ -195,8 +211,25 @@ class XRaySample:
         self.volume.to(self.length_unit**3)
         self.density.to(self.mass_unit/self.length_unit**3)
         self.surface_density.to(self.mass_unit/self.length_unit**2)
+        self.mass_absorption.to(self.length_unit**2 / self.mass_unit)
     
         return self._length_unit
+
+    @property
+    def energy_unit(self):
+        return self._energy_unit
+
+    @energy_unit.setter
+    def energy_unit(self, val:str|Unit):
+        if isinstance(val, Unit):
+            self._energy_unit = val
+        else:
+            self._energy_unit = getattr(units, val)
+
+        # CONVERT ALL ENERGY VALUES BELOW
+        self.edge_energy.to(self.energy_unit)
+        self.energy.to(self.energy_unit)
+        
 
     def calculate_step(self):
         if isinstance(self.edge_energy.value, (int, float)):
