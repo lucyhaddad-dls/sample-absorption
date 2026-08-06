@@ -1,0 +1,16 @@
+{
+	"name": "Sample Mass Maths",
+	"image": "docker.io/library/python:3.12-bookworm",
+	"runArgs": ["--security-opt=label=type:container_runtime_t"],
+    "remoteEnv": { "HOME": "" },
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-vscode-remote.remote-containers"
+			]
+		}
+    },
+    "postCreateCommand": "pip install -e ."
+}
