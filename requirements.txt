@@ -10,8 +10,8 @@ pillow==12.3.0
 platformdirs==4.11.0
 pyparsing==3.3.2
 python-dateutil==2.9.0.post0
-# Editable Git install with no remote (sample-mass-calcs==0.1.0)
--e /workspaces/sample-mass-calcs
+# # Editable Git install with no remote (sample-mass-calcs==0.1.0)
+# -e /workspaces/sample-mass-calcs
 scipy==1.18.0
 six==1.17.0
 SQLAlchemy==2.0.51

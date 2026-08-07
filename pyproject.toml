@@ -8,5 +8,6 @@ dependencies = [
     "numpy>=2.4.0",
     "xraylib>=4.2.1",
     "xraydb==4.5.8",
-    "matplotlib==3.11.1"
+    "matplotlib==3.11.1",
+    "pint>=0.25.3",
 ]
