@@ -1,18 +1,12 @@
-
 from src.xas_sample import XRaySample
-import matplotlib.pyplot as plt
 
-tst = XRaySample(formula="TiO", absorber="Ti",
-                 edge="K", mass=1, thickness=20,
-                 density=1, mass_unit="kg",
-                 energy_unit="eV")
+tst = XRaySample("Cu", "Cu", "K", mu_total=1,
+                 density=8.96,area = 1.3)
 
-element = tst.elements[0]
-element.mass_unit = "lb"
+tst.calculate_thickness()
+tst.length_unit = "um"
+tst.mass_unit = "mg"
 
-fig, ax = plt.subplots()
-for element in tst.elements:
-    ax.plot(tst.energy.value, element.mass_absorption.value,
-            label=element.mass_unit)
-ax.legend()
-plt.show()
+print(f"THICKNESS = {tst.thickness}, ABS STEP = {tst.absorbance_step}")
+
+tst.calculate_mass()
