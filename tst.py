@@ -1,4 +1,4 @@
-from src.xas_sample import XRaySample
+from sample_mass_calcs.xas_sample import XRaySample
 
 tst = XRaySample("Cu", "Cu", "K", mu_total=1,
                  density=8.96,area = 1.3)
