@@ -1,6 +1,8 @@
 {
 	"name": "Sample Mass Maths",
-	"image": "docker.io/library/python:3.12-bookworm",
+	"build": {
+        "dockerfile": "../Dockerfile"
+	},
 	"runArgs": ["--security-opt=label=type:container_runtime_t"],
     "remoteEnv": { "HOME": "" },
 	"customizations": {

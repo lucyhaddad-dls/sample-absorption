@@ -1,10 +1,5 @@
 name: Docker
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
 on:
   push:
     branches: [ "main" ]
@@ -46,6 +41,10 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest
+
+      - name: Install Deps
+        run: |
+          pip install .
             
       - name: Build and push Docker image
         id: push
