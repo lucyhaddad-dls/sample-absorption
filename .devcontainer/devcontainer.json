@@ -13,6 +13,5 @@
 				"ms-vscode-remote.remote-containers"
 			]
 		}
-    },
-    "postCreateCommand": "pip install -e ."
+    }
 }
